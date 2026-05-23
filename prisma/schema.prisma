@@ -1,0 +1,141 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model UserProfile {
+  id             String      @id @default(cuid())
+  name           String
+  age            Int
+  gender         String
+  heightCm       Float
+  weightKg       Float
+  activityLevel  String
+  goal           String
+  tdee           Float
+  caloriesTarget Float
+  proteinTarget  Float
+  carbsTarget    Float
+  fatTarget      Float
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  weightLogs     WeightLog[]
+  mealLogs       MealLog[]
+}
+
+model WeightLog {
+  id       String      @id @default(cuid())
+  userId   String
+  weightKg Float
+  loggedAt DateTime    @default(now())
+  user     UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, loggedAt])
+}
+
+model FoodItem {
+  id                String             @id @default(cuid())
+  source            String             @default("local")
+  sourceId          String?
+  name              String
+  brand             String?
+  imageUrl          String?
+  dietTags          String             @default("")
+  allergenTags      String             @default("")
+  servingGrams      Float              @default(100)
+  caloriesPer100g   Float
+  proteinPer100g    Float
+  carbsPer100g      Float
+  fatPer100g        Float
+  isCustom          Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  recipeIngredients RecipeIngredient[]
+  mealLogItems      MealLogItem[]
+
+  @@unique([source, sourceId])
+  @@index([name])
+}
+
+model Recipe {
+  id              String             @id @default(cuid())
+  source          String             @default("local")
+  sourceId        String?
+  name            String
+  imageUrl        String?
+  dietTags        String             @default("")
+  allergenTags    String             @default("")
+  servings        Int                @default(1)
+  caloriesPer100g Float
+  proteinPer100g  Float
+  carbsPer100g    Float
+  fatPer100g      Float
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  ingredients     RecipeIngredient[]
+  mealLogItems    MealLogItem[]
+
+  @@unique([source, sourceId])
+  @@index([name])
+}
+
+model RecipeIngredient {
+  id          String   @id @default(cuid())
+  recipeId    String
+  foodItemId  String
+  weightGrams Float
+  recipe      Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  foodItem    FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Restrict)
+
+  @@index([recipeId])
+  @@index([foodItemId])
+}
+
+model MealLog {
+  id        String        @id @default(cuid())
+  userId    String
+  date      DateTime
+  mealType  String
+  notes     String?
+  createdAt DateTime      @default(now())
+  user      UserProfile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     MealLogItem[]
+
+  @@index([userId, date])
+  @@index([mealType])
+}
+
+model MealLogItem {
+  id                  String    @id @default(cuid())
+  mealLogId           String
+  foodItemId          String?
+  recipeId            String?
+  labelSnapshot       String
+  loggedWeightGrams   Float
+  unit                String    @default("g")
+  baseCaloriesPer100g Float
+  baseProteinPer100g  Float
+  baseCarbsPer100g    Float
+  baseFatPer100g      Float
+  calories            Float
+  protein             Float
+  carbs               Float
+  fat                 Float
+  createdAt           DateTime  @default(now())
+  mealLog             MealLog   @relation(fields: [mealLogId], references: [id], onDelete: Cascade)
+  foodItem            FoodItem? @relation(fields: [foodItemId], references: [id], onDelete: Restrict)
+  recipe              Recipe?   @relation(fields: [recipeId], references: [id], onDelete: Restrict)
+
+  @@index([mealLogId])
+  @@index([foodItemId])
+  @@index([recipeId])
+}
